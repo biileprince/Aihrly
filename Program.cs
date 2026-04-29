@@ -1,4 +1,5 @@
 using Aihrly.Api.Data;
+using Aihrly.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,13 @@ builder.Services.AddControllers();
 
 builder.Services.AddDbContext<AihrlyDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetValue<string>("Redis:Configuration");
+});
+
+builder.Services.AddScoped<IApplicationProfileCache, ApplicationProfileCache>();
 
 var app = builder.Build();
 
