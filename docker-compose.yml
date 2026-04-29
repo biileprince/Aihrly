@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aihrly-postgres
+    environment:
+      POSTGRES_DB: aihrly
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "55432:5432"
+    volumes:
+      - aihrly_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: aihrly-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - aihrly_redis_data:/data
+
+volumes:
+  aihrly_postgres_data:
+  aihrly_redis_data:
