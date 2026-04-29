@@ -1,9 +1,12 @@
+using Aihrly.Api.Common;
 using Aihrly.Api.Data;
+using Aihrly.Api.Filters;
 using Aihrly.Api.Models.Dto.Applications;
 using Aihrly.Api.Models.Dto.Notes;
 using Aihrly.Api.Models.Dto.Scores;
 using Aihrly.Api.Models.Dto.StageHistory;
 using Aihrly.Api.Models.Entities;
+using Aihrly.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -200,6 +203,50 @@ public class ApplicationsController : ControllerBase
         }
 
         return Ok(response);
+    }
+
+    [HttpPatch("applications/{id:int}/stage")]
+    [RequireTeamMemberHeader]
+    public async Task<IActionResult> ChangeStage(
+        int id,
+        [FromBody] ApplicationStageChangeRequest request,
+        CancellationToken cancellationToken)
+    {
+        var application = await _dbContext.Applications
+            .FirstOrDefaultAsync(entity => entity.Id == id, cancellationToken);
+
+        if (application is null)
+        {
+            return NotFound();
+        }
+
+        var fromStage = application.CurrentStage;
+        var toStage = request.ToStage;
+
+        if (!StageTransitionRules.IsValidTransition(fromStage, toStage))
+        {
+            return BadRequest(CreateProblemDetails(
+                "Invalid stage transition",
+                StageTransitionRules.BuildErrorMessage(fromStage, toStage)));
+        }
+
+        var teamMemberId = (int)HttpContext.Items[HttpContextItemKeys.TeamMemberId]!;
+        var now = DateTimeOffset.UtcNow;
+
+        application.CurrentStage = toStage;
+        _dbContext.StageHistoryEntries.Add(new StageHistory
+        {
+            ApplicationId = application.Id,
+            FromStage = fromStage,
+            ToStage = toStage,
+            ChangedById = teamMemberId,
+            ChangedAt = now,
+            Reason = request.Reason?.Trim()
+        });
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return NoContent();
     }
 
     private static ProblemDetails CreateProblemDetails(string title, string detail)
