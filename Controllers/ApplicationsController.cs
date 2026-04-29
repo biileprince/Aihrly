@@ -17,10 +17,12 @@ namespace Aihrly.Api.Controllers;
 public class ApplicationsController : ControllerBase
 {
     private readonly AihrlyDbContext _dbContext;
+    private readonly IApplicationProfileCache _profileCache;
 
-    public ApplicationsController(AihrlyDbContext dbContext)
+    public ApplicationsController(AihrlyDbContext dbContext, IApplicationProfileCache profileCache)
     {
         _dbContext = dbContext;
+        _profileCache = profileCache;
     }
 
     [HttpPost("jobs/{jobId:int}/applications")]
@@ -125,6 +127,12 @@ public class ApplicationsController : ControllerBase
         int id,
         CancellationToken cancellationToken)
     {
+        var cached = await _profileCache.GetAsync(id, cancellationToken);
+        if (cached is not null)
+        {
+            return Ok(cached);
+        }
+
         var response = await _dbContext.Applications.AsNoTracking()
             .Where(application => application.Id == id)
             .Select(application => new ApplicationProfileResponse
@@ -202,6 +210,8 @@ public class ApplicationsController : ControllerBase
             return NotFound();
         }
 
+        await _profileCache.SetAsync(id, response, cancellationToken);
+
         return Ok(response);
     }
 
@@ -245,6 +255,8 @@ public class ApplicationsController : ControllerBase
         });
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _profileCache.InvalidateAsync(application.Id, cancellationToken);
 
         return NoContent();
     }

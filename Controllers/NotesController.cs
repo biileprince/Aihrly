@@ -3,6 +3,7 @@ using Aihrly.Api.Data;
 using Aihrly.Api.Filters;
 using Aihrly.Api.Models.Dto.Notes;
 using Aihrly.Api.Models.Entities;
+using Aihrly.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,10 +14,12 @@ namespace Aihrly.Api.Controllers;
 public class NotesController : ControllerBase
 {
     private readonly AihrlyDbContext _dbContext;
+    private readonly IApplicationProfileCache _profileCache;
 
-    public NotesController(AihrlyDbContext dbContext)
+    public NotesController(AihrlyDbContext dbContext, IApplicationProfileCache profileCache)
     {
         _dbContext = dbContext;
+        _profileCache = profileCache;
     }
 
     [HttpPost]
@@ -47,6 +50,8 @@ public class NotesController : ControllerBase
 
         _dbContext.ApplicationNotes.Add(note);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _profileCache.InvalidateAsync(applicationId, cancellationToken);
 
         var authorName = await _dbContext.TeamMembers
             .Where(member => member.Id == teamMemberId)
