@@ -1,5 +1,6 @@
 using System.Reflection;
 using Aihrly.Api.Data;
+using Aihrly.Api.Filters;
 using Aihrly.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -35,6 +36,8 @@ builder.Services.AddSwaggerGen(options =>
         Name = "X-Team-Member-Id",
         Description = "ID of the acting team member (seeded IDs: 1 = Alex Johnson, 2 = Sam Patel, 3 = Jordan Lee)"
     });
+
+    options.OperationFilter<TeamMemberSecurityOperationFilter>();
 
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
