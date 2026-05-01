@@ -1,6 +1,257 @@
-@Aihrly.Api_HostAddress = http://localhost:5067
+@baseUrl = http://localhost:5067
+@TeamMemberId = 1
 
-GET {{Aihrly.Api_HostAddress}}/weatherforecast/
+# Swagger UI — open in browser: http://localhost:5067/swagger
+
+
+### ─── JOBS ──────────────────────────────────────────────────────────────────
+
+### Create Job
+POST {{baseUrl}}/api/jobs
+Content-Type: application/json
+X-Team-Member-Id: {{TeamMemberId}}
+
+{
+  "title": "Backend Developer",
+  "description": "Build and maintain our ASP.NET Core APIs.",
+  "location": "Remote",
+  "status": 0
+}
+
+###
+
+### List Jobs (all)
+GET {{baseUrl}}/api/jobs?page=1&pageSize=20
 Accept: application/json
 
 ###
+
+### List Jobs (open only)
+GET {{baseUrl}}/api/jobs?status=open&page=1&pageSize=20
+Accept: application/json
+
+###
+
+### Get Job By Id
+GET {{baseUrl}}/api/jobs/1
+Accept: application/json
+
+###
+
+
+### ─── APPLICATIONS ───────────────────────────────────────────────────────────
+
+### Create Application (public — no header needed)
+POST {{baseUrl}}/api/jobs/1/applications
+Content-Type: application/json
+
+{
+  "candidateName": "Jamie Doe",
+  "candidateEmail": "jamie@example.com",
+  "coverLetter": "I am excited to apply for this role."
+}
+
+###
+
+### List Applications for Job
+GET {{baseUrl}}/api/jobs/1/applications
+Accept: application/json
+
+###
+
+### List Applications filtered by stage
+GET {{baseUrl}}/api/jobs/1/applications?stage=screening
+Accept: application/json
+
+###
+
+### Get Full Application Profile (cached in Redis 60s)
+GET {{baseUrl}}/api/applications/1
+Accept: application/json
+
+###
+
+
+### ─── STAGE TRANSITIONS ──────────────────────────────────────────────────────
+
+### Move to Screening
+PATCH {{baseUrl}}/api/applications/1/stage
+Content-Type: application/json
+X-Team-Member-Id: {{TeamMemberId}}
+
+{
+  "toStage": 1,
+  "reason": "Strong resume — moving to phone screen."
+}
+
+###
+
+### Move to Interview
+PATCH {{baseUrl}}/api/applications/1/stage
+Content-Type: application/json
+X-Team-Member-Id: {{TeamMemberId}}
+
+{
+  "toStage": 2,
+  "reason": "Phone screen passed."
+}
+
+###
+
+### Move to Offer
+PATCH {{baseUrl}}/api/applications/1/stage
+Content-Type: application/json
+X-Team-Member-Id: {{TeamMemberId}}
+
+{
+  "toStage": 3,
+  "reason": "Excellent panel interview."
+}
+
+###
+
+### Move to Hired
+PATCH {{baseUrl}}/api/applications/1/stage
+Content-Type: application/json
+X-Team-Member-Id: {{TeamMemberId}}
+
+{
+  "toStage": 4,
+  "reason": "Offer accepted."
+}
+
+###
+
+### Move to Rejected (valid from any non-terminal stage)
+PATCH {{baseUrl}}/api/applications/1/stage
+Content-Type: application/json
+X-Team-Member-Id: {{TeamMemberId}}
+
+{
+  "toStage": 5,
+  "reason": "Position filled by another candidate."
+}
+
+###
+
+### Invalid Transition — expect 400
+PATCH {{baseUrl}}/api/applications/1/stage
+Content-Type: application/json
+X-Team-Member-Id: {{TeamMemberId}}
+
+{
+  "toStage": 4
+}
+
+###
+
+
+### ─── NOTES ──────────────────────────────────────────────────────────────────
+
+### Add a General Note
+POST {{baseUrl}}/api/applications/1/notes
+Content-Type: application/json
+X-Team-Member-Id: {{TeamMemberId}}
+
+{
+  "type": 0,
+  "description": "Strong initial impression — clear communicator."
+}
+
+###
+
+### Add a Screening Note
+POST {{baseUrl}}/api/applications/1/notes
+Content-Type: application/json
+X-Team-Member-Id: 2
+
+{
+  "type": 1,
+  "description": "Phone screen confirmed technical fundamentals are solid."
+}
+
+###
+
+### Add a Red Flag Note
+POST {{baseUrl}}/api/applications/1/notes
+Content-Type: application/json
+X-Team-Member-Id: 3
+
+{
+  "type": 4,
+  "description": "Candidate was unresponsive for 2 weeks mid-process."
+}
+
+###
+
+### List Notes (newest first, author names resolved)
+GET {{baseUrl}}/api/applications/1/notes
+Accept: application/json
+
+###
+
+
+### ─── SCORES ─────────────────────────────────────────────────────────────────
+
+### Set Culture-Fit Score
+PUT {{baseUrl}}/api/applications/1/scores/culture-fit
+Content-Type: application/json
+X-Team-Member-Id: {{TeamMemberId}}
+
+{
+  "score": 4,
+  "comment": "Aligned well with the team's values and communication style."
+}
+
+###
+
+### Set Interview Score
+PUT {{baseUrl}}/api/applications/1/scores/interview
+Content-Type: application/json
+X-Team-Member-Id: 2
+
+{
+  "score": 5,
+  "comment": "Excellent systems design and clear problem-solving approach."
+}
+
+###
+
+### Set Assessment Score
+PUT {{baseUrl}}/api/applications/1/scores/assessment
+Content-Type: application/json
+X-Team-Member-Id: 2
+
+{
+  "score": 3,
+  "comment": "Take-home was functional but lacked tests."
+}
+
+###
+
+### Overwrite Assessment Score (PUT semantics — second write wins)
+PUT {{baseUrl}}/api/applications/1/scores/assessment
+Content-Type: application/json
+X-Team-Member-Id: 3
+
+{
+  "score": 4,
+  "comment": "Re-reviewed after candidate submitted improvements."
+}
+
+###
+
+
+### ─── REFERENCE ───────────────────────────────────────────────────────────────
+# Seeded team members:
+#   ID 1 = Alex Johnson  (Recruiter)
+#   ID 2 = Sam Patel     (HiringManager)
+#   ID 3 = Jordan Lee    (Recruiter)
+#
+# Stage enum values:
+#   0 = Applied   1 = Screening   2 = Interview
+#   3 = Offer     4 = Hired       5 = Rejected
+#
+# Note type enum values:
+#   0 = General   1 = Screening   2 = Interview
+#   3 = ReferenceCheck   4 = RedFlag

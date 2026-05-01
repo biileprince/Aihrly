@@ -12,8 +12,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Aihrly.Api.Controllers;
 
+/// <summary>Manage job applications and move them through the hiring pipeline.</summary>
 [ApiController]
 [Route("api")]
+[Produces("application/json")]
 public class ApplicationsController : ControllerBase
 {
     private readonly AihrlyDbContext _dbContext;
@@ -25,7 +27,15 @@ public class ApplicationsController : ControllerBase
         _profileCache = profileCache;
     }
 
+    /// <summary>Submit a candidate application for a job. Public endpoint — no header required.</summary>
+    /// <remarks>
+    /// A candidate cannot apply to the same job twice with the same email address.
+    /// New applications start in the <c>Applied</c> stage.
+    /// </remarks>
     [HttpPost("jobs/{jobId:int}/applications")]
+    [ProducesResponseType(typeof(ApplicationProfileResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApplicationProfileResponse>> CreateApplication(
         int jobId,
         [FromBody] ApplicationCreateRequest request,
@@ -75,7 +85,13 @@ public class ApplicationsController : ControllerBase
         return CreatedAtAction(nameof(GetApplicationProfile), new { id = application.Id }, response);
     }
 
+    /// <summary>List all applications for a job, optionally filtered by pipeline stage.</summary>
+    /// <param name="jobId">Job ID.</param>
+    /// <param name="stage">Stage name to filter by (e.g. <c>screening</c>, <c>interview</c>).</param>
     [HttpGet("jobs/{jobId:int}/applications")]
+    [ProducesResponseType(typeof(IReadOnlyList<ApplicationListItemResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IReadOnlyList<ApplicationListItemResponse>>> GetApplicationsForJob(
         int jobId,
         [FromQuery] string? stage,
@@ -122,7 +138,14 @@ public class ApplicationsController : ControllerBase
         return Ok(items);
     }
 
+    /// <summary>
+    /// Get the full candidate profile: basic info, current stage, all three scores,
+    /// all notes with resolved author names, and the complete stage history.
+    /// Response is cached in Redis for 60 seconds.
+    /// </summary>
     [HttpGet("applications/{id:int}")]
+    [ProducesResponseType(typeof(ApplicationProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApplicationProfileResponse>> GetApplicationProfile(
         int id,
         CancellationToken cancellationToken)
@@ -215,8 +238,18 @@ public class ApplicationsController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>
+    /// Move an application to a new pipeline stage.
+    /// Valid transitions: Applied→Screening, Screening→Interview, Interview→Offer,
+    /// Offer→Hired, and any non-terminal stage→Rejected.
+    /// </summary>
+    /// <remarks>Requires X-Team-Member-Id header. Records a StageHistory entry.</remarks>
     [HttpPatch("applications/{id:int}/stage")]
     [RequireTeamMemberHeader]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ChangeStage(
         int id,
         [FromBody] ApplicationStageChangeRequest request,

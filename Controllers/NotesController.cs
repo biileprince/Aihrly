@@ -9,8 +9,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Aihrly.Api.Controllers;
 
+/// <summary>Add and retrieve notes on an application.</summary>
 [ApiController]
 [Route("api/applications/{applicationId:int}/notes")]
+[Produces("application/json")]
 public class NotesController : ControllerBase
 {
     private readonly AihrlyDbContext _dbContext;
@@ -22,8 +24,16 @@ public class NotesController : ControllerBase
         _profileCache = profileCache;
     }
 
+    /// <summary>Add a note to an application.</summary>
+    /// <remarks>
+    /// The author is resolved from the X-Team-Member-Id header — do not pass it in the body.
+    /// Valid note types: <c>General</c>, <c>Screening</c>, <c>Interview</c>, <c>ReferenceCheck</c>, <c>RedFlag</c>.
+    /// </remarks>
     [HttpPost]
     [RequireTeamMemberHeader]
+    [ProducesResponseType(typeof(ApplicationNoteResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApplicationNoteResponse>> CreateNote(
         int applicationId,
         [FromBody] ApplicationNoteCreateRequest request,
@@ -71,7 +81,10 @@ public class NotesController : ControllerBase
         return CreatedAtAction(nameof(GetNotes), new { applicationId }, response);
     }
 
+    /// <summary>List all notes for an application, newest first. Author names are resolved.</summary>
     [HttpGet]
+    [ProducesResponseType(typeof(IReadOnlyList<ApplicationNoteResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IReadOnlyList<ApplicationNoteResponse>>> GetNotes(
         int applicationId,
         CancellationToken cancellationToken)

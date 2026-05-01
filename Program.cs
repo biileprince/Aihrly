@@ -1,12 +1,11 @@
+using System.Reflection;
 using Aihrly.Api.Data;
 using Aihrly.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 
 builder.Services.AddDbContext<AihrlyDbContext>(options =>
@@ -19,16 +18,41 @@ builder.Services.AddStackExchangeRedisCache(options =>
 
 builder.Services.AddScoped<IApplicationProfileCache, ApplicationProfileCache>();
 
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Aihrly ATS API",
+        Version = "v1",
+        Description = "Team-side pipeline API for the Aihrly Applicant Tracking System. " +
+                      "Mutating endpoints require an X-Team-Member-Id header containing a valid team member ID."
+    });
+
+    options.AddSecurityDefinition("TeamMemberId", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey,
+        In = ParameterLocation.Header,
+        Name = "X-Team-Member-Id",
+        Description = "ID of the acting team member (seeded IDs: 1 = Alex Johnson, 2 = Sam Patel, 3 = Jordan Lee)"
+    });
+
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+        options.IncludeXmlComments(xmlPath);
+});
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.MapOpenApi();
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Aihrly ATS API v1");
+    options.RoutePrefix = "swagger";
+});
 
 app.UseHttpsRedirection();
-
 app.MapControllers();
-
 app.Run();
+
+public partial class Program { }
