@@ -88,6 +88,7 @@ public class ApplicationsController : ControllerBase
     /// <summary>List all applications for a job, optionally filtered by pipeline stage.</summary>
     /// <param name="jobId">Job ID.</param>
     /// <param name="stage">Stage name to filter by (e.g. <c>screening</c>, <c>interview</c>).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     [HttpGet("jobs/{jobId:int}/applications")]
     [ProducesResponseType(typeof(IReadOnlyList<ApplicationListItemResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

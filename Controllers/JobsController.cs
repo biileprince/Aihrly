@@ -58,6 +58,7 @@ public class JobsController : ControllerBase
     /// <param name="status">Filter by job status: <c>Open</c> or <c>Closed</c>.</param>
     /// <param name="page">1-based page number (default 1).</param>
     /// <param name="pageSize">Items per page (default 20).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<JobSummaryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
