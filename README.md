@@ -7,6 +7,7 @@ ASP.NET Core 9 Web API for an Applicant Tracking System (ATS). Covers the team-s
 - **.NET 9** ASP.NET Core Web API
 - **PostgreSQL 16** via EF Core + Npgsql
 - **Redis 7** for response caching (`GET /api/applications/{id}`)
+- **Swashbuckle** for Swagger UI (`/swagger`)
 - **xUnit** + `WebApplicationFactory` for tests
 
 ---
@@ -26,7 +27,7 @@ dotnet ef database update --project Aihrly.Api.csproj
 dotnet run --project Aihrly.Api.csproj
 ```
 
-The API will be available at `http://localhost:5067`.
+The API will be available at `http://localhost:5067`. Swagger UI is accessible at `http://localhost:5067/swagger`.
 
 ### Without Docker
 
@@ -149,4 +150,3 @@ The cache is invalidated on every write that touches the application:
 - **Cursor-based pagination:** The current `?page=N&pageSize=N` approach works but can skip or duplicate rows under concurrent inserts. Keyset/cursor pagination is safer for high-throughput pipelines.
 - **Structured logging:** Switch to Serilog with a JSON formatter so logs are queryable in a log aggregator.
 - **Health check endpoint:** A `/health` route that checks database and Redis connectivity, useful for container orchestration readiness probes.
-- **Dockerfile:** Containerize the API itself alongside the existing `docker-compose.yml` so the full stack can be brought up with zero local .NET tooling required.
