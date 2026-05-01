@@ -8,8 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Aihrly.Api.Controllers;
 
+/// <summary>Manage job postings.</summary>
 [ApiController]
 [Route("api/jobs")]
+[Produces("application/json")]
 public class JobsController : ControllerBase
 {
     private readonly AihrlyDbContext _dbContext;
@@ -19,8 +21,12 @@ public class JobsController : ControllerBase
         _dbContext = dbContext;
     }
 
+    /// <summary>Create a new job posting.</summary>
+    /// <remarks>Requires X-Team-Member-Id header.</remarks>
     [HttpPost]
     [RequireTeamMemberHeader]
+    [ProducesResponseType(typeof(JobDetailResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<JobDetailResponse>> CreateJob(
         [FromBody] JobCreateRequest request,
         CancellationToken cancellationToken)
@@ -48,7 +54,13 @@ public class JobsController : ControllerBase
         return CreatedAtAction(nameof(GetJobById), new { id = job.Id }, response);
     }
 
+    /// <summary>List jobs with optional status filter and pagination.</summary>
+    /// <param name="status">Filter by job status: <c>Open</c> or <c>Closed</c>.</param>
+    /// <param name="page">1-based page number (default 1).</param>
+    /// <param name="pageSize">Items per page (default 20).</param>
     [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<JobSummaryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedResult<JobSummaryResponse>>> GetJobs(
         [FromQuery] JobStatus? status,
         [FromQuery] int page = 1,
@@ -99,7 +111,10 @@ public class JobsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Get a single job by ID.</summary>
     [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(JobDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<JobDetailResponse>> GetJobById(
         int id,
         CancellationToken cancellationToken)

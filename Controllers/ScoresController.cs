@@ -9,8 +9,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Aihrly.Api.Controllers;
 
+/// <summary>Set culture-fit, interview, and assessment scores on an application.</summary>
+/// <remarks>
+/// All three endpoints use PUT semantics — submitting again overwrites the previous value.
+/// Scores must be between 1 and 5. All endpoints require X-Team-Member-Id header.
+/// </remarks>
 [ApiController]
 [Route("api/applications/{applicationId:int}/scores")]
+[Produces("application/json")]
 public class ScoresController : ControllerBase
 {
     private readonly AihrlyDbContext _dbContext;
@@ -22,8 +28,13 @@ public class ScoresController : ControllerBase
         _profileCache = profileCache;
     }
 
+    /// <summary>Set or overwrite the culture-fit score (1–5).</summary>
     [HttpPut("culture-fit")]
     [RequireTeamMemberHeader]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public Task<IActionResult> UpdateCultureFit(
         int applicationId,
         [FromBody] ScoreUpdateRequest request,
@@ -38,8 +49,13 @@ public class ScoresController : ControllerBase
         }, cancellationToken);
     }
 
+    /// <summary>Set or overwrite the interview score (1–5).</summary>
     [HttpPut("interview")]
     [RequireTeamMemberHeader]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public Task<IActionResult> UpdateInterview(
         int applicationId,
         [FromBody] ScoreUpdateRequest request,
@@ -54,8 +70,13 @@ public class ScoresController : ControllerBase
         }, cancellationToken);
     }
 
+    /// <summary>Set or overwrite the assessment score (1–5).</summary>
     [HttpPut("assessment")]
     [RequireTeamMemberHeader]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public Task<IActionResult> UpdateAssessment(
         int applicationId,
         [FromBody] ScoreUpdateRequest request,
