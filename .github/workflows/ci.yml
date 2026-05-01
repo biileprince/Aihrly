@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore Aihrly.Api.sln
+
+      - name: Build
+        run: dotnet build Aihrly.Api.sln --no-restore -c Release
+
+      - name: Run tests
+        run: dotnet test Aihrly.Api.Tests/Aihrly.Api.Tests.csproj --no-build -c Release --logger "console;verbosity=normal"

@@ -10,6 +10,11 @@ services:
       - "55432:5432"
     volumes:
       - aihrly_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -18,6 +23,28 @@ services:
       - "6380:6379"
     volumes:
       - aihrly_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aihrly-api
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=aihrly;Username=postgres;Password=postgres"
+      Redis__Configuration: "redis:6379"
+      ASPNETCORE_ENVIRONMENT: Production
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   aihrly_postgres_data:
